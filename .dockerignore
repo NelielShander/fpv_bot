@@ -1,0 +1,10 @@
+.git
+.gitignore
+.env
+*.log
+postgres-data
+postgres_data
+tmp
+bin
+.idea
+.vscode

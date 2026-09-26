@@ -10,9 +10,8 @@ import (
 )
 
 const (
-	schedulerLocation = "Europe/Moscow"
-	dailyHour         = 19
-	dailyMinute       = 0
+	dailyHour   = 19
+	dailyMinute = 0
 )
 
 type Scheduler struct {
@@ -26,12 +25,12 @@ func NewScheduler(
 	cfg Config,
 ) (*Scheduler, error) {
 	location, err := time.LoadLocation(
-		schedulerLocation,
+		cfg.TZ,
 	)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"загрузка часового пояса %s: %w",
-			schedulerLocation,
+			cfg.TZ,
 			err,
 		)
 	}
