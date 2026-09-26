@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -16,6 +17,13 @@ const (
 
 	commandWeekly = "nedelny"
 )
+
+type MessageData struct {
+	TelegramMessageID int
+	Username          string
+	OriginalText      string
+	MessageDate       time.Time
+}
 
 func NewTelegramBot(
 	token string,

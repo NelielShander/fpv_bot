@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"time"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -16,13 +14,6 @@ const insertMessageQuery = `
 	)
 	VALUES ($1, $2, $3, $4)
 `
-
-type MessageData struct {
-	TelegramMessageID int
-	Username          string
-	OriginalText      string
-	MessageDate       time.Time
-}
 
 type Database struct {
 	pool *pgxpool.Pool
