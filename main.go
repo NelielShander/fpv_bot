@@ -5,17 +5,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-)
-
-const (
-	userID  int64 = 8488381692     // @шаман
-	groupID int64 = -1003992899425 // РАБОТНИК🛩✈️🛩✈️🛫
 )
 
 type MessageData struct {
@@ -193,6 +189,29 @@ func saveMessage(ctx context.Context, db *pgxpool.Pool, data MessageData) error 
 
 // Отправка ежедневного сообщения
 func sendDailyMessage(bot *tgbotapi.BotAPI) {
+
+	userIDstr := os.Getenv("NOTIFY_USER_ID")
+	if userIDstr == "" {
+		log.Fatal("TELEGRAM_BOT_TOKEN не задан")
+	}
+
+	userID, err := strconv.ParseInt(userIDstr, 10, 64)
+	if err != nil {
+		fmt.Println("Ошибка:", err)
+		return
+	}
+
+	groupIDstr := os.Getenv("GROUP_ID")
+	if groupIDstr == "" {
+		log.Fatal("TELEGRAM_BOT_TOKEN не задан")
+	}
+
+	groupID, err := strconv.ParseInt(groupIDstr, 10, 64)
+	if err != nil {
+		fmt.Println("Ошибка:", err)
+		return
+	}
+
 	for {
 		now := time.Now()
 
