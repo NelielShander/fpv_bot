@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
@@ -16,12 +17,16 @@ const (
 		)
 		VALUES ($1, $2, $3, $4)
 	`
-	getLstWeekReportsQuery = `
-		SELECT username, original_text, message_date
+
+	getLastWeekReportsQuery = `
+		SELECT
+			username,
+			original_text,
+			message_date
 		FROM messages
 		WHERE message_date >= date_trunc('week', CURRENT_DATE) - INTERVAL '7 days'
-		  AND message_date <  date_trunc('week', CURRENT_DATE)
-		ORDER BY message_date;
+		  AND message_date < date_trunc('week', CURRENT_DATE)
+		ORDER BY message_date
 	`
 )
 
@@ -55,7 +60,9 @@ func NewDatabase(
 }
 
 func (db *Database) Close() {
-	db.pool.Close()
+	if db != nil && db.pool != nil {
+		db.pool.Close()
+	}
 }
 
 func (db *Database) SaveMessage(
@@ -74,28 +81,39 @@ func (db *Database) SaveMessage(
 	return err
 }
 
-func GetLastWeekReports(ctx context.Context, db *Database) ([]Report, error) {
-	var reports []Report
-
-	rows, err := db.pool.Query(ctx, getLstWeekReportsQuery)
+func GetLastWeekReports(
+	ctx context.Context,
+	db *Database,
+) ([]Report, error) {
+	rows, err := db.pool.Query(
+		ctx,
+		getLastWeekReportsQuery,
+	)
 	if err != nil {
-		return reports, err
+		return nil, err
 	}
 	defer rows.Close()
+
+	reports := make([]Report, 0)
 
 	for rows.Next() {
 		var report Report
 
-		if err := rows.Scan(
+		err := rows.Scan(
 			&report.Username,
 			&report.MessageText,
 			&report.MessageDate,
-		); err != nil {
+		)
+		if err != nil {
 			return nil, err
 		}
 
 		reports = append(reports, report)
 	}
 
-	return reports, err
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return reports, nil
 }
