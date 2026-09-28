@@ -20,7 +20,7 @@ profile.cov
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
-records.csv
+*.csv
 
 # Go workspace file
 go.work

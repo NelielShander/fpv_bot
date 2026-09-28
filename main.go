@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	log.Println("Starting Telegram bot...")
+	log.Println("Запуск телеграм бота...")
 
 	if err := godotenv.Load(); err != nil {
 		log.Println(
