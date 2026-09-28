@@ -67,7 +67,13 @@ func handleUpdate(
 ) {
 	message := update.Message
 
-	if message == nil || message.Text == "" {
+	if message == nil {
+		return
+	}
+
+	messageText := getMessageText(message)
+
+	if messageText == "" {
 		return
 	}
 
@@ -76,16 +82,16 @@ func handleUpdate(
 		return
 	}
 
-	if hasLessLines(message.Text, 10) {
+	if hasLessLines(messageText, 10) {
 		return
 	}
 
 	username := messageUsername(message)
 
 	log.Printf(
-		"Новое сообщение от %s: %s",
+		"Новое сообщение от '%s: %s...'",
 		username,
-		message.Text,
+		trimText(messageText, 50),
 	)
 
 	if err := addReaction(bot, message, reactionEmoji); err != nil {
@@ -118,14 +124,14 @@ func handleCommand(
 ) {
 	switch message.Command() {
 	case commandWeekly:
-		sendWeeklyReportMessage(
+		handleCommandWeekly(
 			bot,
 			message.Chat.ID,
 		)
 	}
 }
 
-func sendWeeklyReportMessage(
+func handleCommandWeekly(
 	bot *tgbotapi.BotAPI,
 	chatID int64,
 ) {
@@ -199,4 +205,22 @@ func addReaction(
 	)
 
 	return err
+}
+
+func getMessageText(message *tgbotapi.Message) string {
+	if message.Text != "" {
+		return message.Text
+	}
+	return message.Caption
+}
+
+func trimText(messageText string, limit int) string {
+	text := strings.ReplaceAll(messageText, "\n", " ")
+	runes := []rune(text)
+
+	if limit > len(runes) {
+		limit = len(runes)
+	}
+
+	return string(runes[:limit])
 }
