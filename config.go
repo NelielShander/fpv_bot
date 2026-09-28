@@ -33,7 +33,7 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 
-	databaseURL, err := DatabaseURL()
+	databaseURL, err := loadDatabaseURL()
 	if err != nil {
 		return Config{}, err
 	}
@@ -91,7 +91,7 @@ func envInt64(name string) (int64, error) {
 	return result, nil
 }
 
-func DatabaseURL() (string, error) {
+func loadDatabaseURL() (string, error) {
 	host, err := requiredEnv(envDBHost)
 	port, err := requiredEnv(envDBPort)
 	name, err := requiredEnv(envDBName)

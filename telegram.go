@@ -137,7 +137,7 @@ func handleCommandWeekly(
 ) {
 	msg := tgbotapi.NewMessage(
 		chatID,
-		"Нет еще отчетов, отвали",
+		ProcessReport(),
 	)
 
 	if _, err := bot.Send(msg); err != nil {
@@ -151,7 +151,13 @@ func handleCommandWeekly(
 func processMessage(
 	message *tgbotapi.Message,
 ) (MessageData, bool) {
-	text := strings.TrimSpace(message.Text)
+	text := message.Caption
+
+	if message.Text != "" {
+		text = message.Text
+	}
+
+	text = strings.TrimSpace(text)
 
 	if text == "" {
 		return MessageData{}, false

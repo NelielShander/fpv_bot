@@ -3,20 +3,36 @@ package main
 import (
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"time"
 )
 
-const insertMessageQuery = `
-	INSERT INTO messages (
-		telegram_message_id,
-		username,
-		original_text,
-		message_date
-	)
-	VALUES ($1, $2, $3, $4)
-`
+const (
+	insertMessageQuery = `
+		INSERT INTO messages (
+			telegram_message_id,
+			username,
+			original_text,
+			message_date
+		)
+		VALUES ($1, $2, $3, $4)
+	`
+	getLstWeekReportsQuery = `
+		SELECT username, original_text, message_date
+		FROM messages
+		WHERE message_date >= date_trunc('week', CURRENT_DATE) - INTERVAL '7 days'
+		  AND message_date <  date_trunc('week', CURRENT_DATE)
+		ORDER BY message_date;
+	`
+)
 
 type Database struct {
 	pool *pgxpool.Pool
+}
+
+type Report struct {
+	Username    string
+	MessageText string
+	MessageDate time.Time
 }
 
 func NewDatabase(
@@ -56,4 +72,30 @@ func (db *Database) SaveMessage(
 	)
 
 	return err
+}
+
+func GetLastWeekReports(ctx context.Context, db *Database) ([]Report, error) {
+	var reports []Report
+
+	rows, err := db.pool.Query(ctx, getLstWeekReportsQuery)
+	if err != nil {
+		return reports, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var report Report
+
+		if err := rows.Scan(
+			&report.Username,
+			&report.MessageText,
+			&report.MessageDate,
+		); err != nil {
+			return nil, err
+		}
+
+		reports = append(reports, report)
+	}
+
+	return reports, err
 }
