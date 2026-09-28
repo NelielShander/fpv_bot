@@ -49,7 +49,10 @@ func ProcessReport() string {
 		reportText.WriteString("\n")
 	}
 
-	return strings.TrimSuffix(reportText.String(), "\n")
+	header := "№; Дата; Наименование; Тип задачи; Статус; Примечание\n"
+	header += strings.TrimSuffix(reportText.String(), "\n")
+
+	return header
 }
 
 func parseReport(report Report) string {
