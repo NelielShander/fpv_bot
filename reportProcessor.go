@@ -11,14 +11,13 @@ import (
 	"time"
 )
 
-var counter int = 0
+var counter int
 
 func ProcessReport() string {
-	reportText := ""
-
 	cfg, err := LoadConfig()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return ""
 	}
 
 	ctx, cancel := signal.NotifyContext(
@@ -28,30 +27,35 @@ func ProcessReport() string {
 	)
 	defer cancel()
 
-	db, err := NewDatabase(
-		ctx,
-		cfg.DatabaseURL,
-	)
+	db, err := NewDatabase(ctx, cfg.DatabaseURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return ""
 	}
 	defer db.Close()
 
 	reports, err := GetLastWeekReports(ctx, db)
 	if err != nil {
 		log.Println(err)
+		return ""
 	}
+
+	counter = 0
+
+	var reportText strings.Builder
 
 	for _, report := range reports {
-		reportText = reportText + "\n" + parseReport(report)
+		reportText.WriteString(parseReport(report))
+		reportText.WriteString("\n")
 	}
 
-	return reportText
+	return strings.TrimSuffix(reportText.String(), "\n")
 }
 
 func parseReport(report Report) string {
 	messageText := report.MessageText
-	text := ""
+
+	var text string
 
 	if strings.Contains(messageText, "Статус") {
 		text = parseWork(report.MessageDate, messageText)
@@ -59,22 +63,24 @@ func parseReport(report Report) string {
 		text = parseDelivery(report.MessageDate, messageText)
 	}
 
-	counter = counter + 1
+	counter++
 
-	text = fmt.Sprintf("%d", counter) + "; " + text
-
-	return text
+	return fmt.Sprintf("%d; %s", counter, text)
 }
 
 func parseDelivery(date time.Time, messageText string) string {
 	text := date.Format("02.01.2006")
-	text = text + "; " + wordAfter(messageText, "FPV", 2)
-	text = text + "; Логистика"
 
-	if strings.Contains(text, "Не доставлено") {
-		text = text + "; Не выполнено; " + wordsAfter(messageText, "Не доставлено")
+	text += "; "
+	text += wordAfter(messageText, "FPV", 2)
+
+	text += "; Логистика"
+
+	if strings.Contains(messageText, "Не доставлено") {
+		text += "; Не выполнено; "
+		text += wordsAfter(messageText, "Не доставлено")
 	} else {
-		text = text + "; Выполнено;"
+		text += "; Выполнено"
 	}
 
 	return text
@@ -82,15 +88,17 @@ func parseDelivery(date time.Time, messageText string) string {
 
 func parseWork(date time.Time, messageText string) string {
 	text := date.Format("02.01.2006")
-	text = text + "; "
-	text = text + wordAfter(messageText, "FPV", 2)
-	text = text + wordAfter(messageText, "Изделие", 1)
-	text = text + "; Боевая"
+
+	text += "; "
+	text += wordAfter(messageText, "FPV", 2)
+	text += wordAfter(messageText, "Изделие", 1)[1:]
+
+	text += "; Боевая"
 
 	if strings.Contains(messageText, "Статус: Попадание") {
-		text = text + "; Выполнено"
+		text += "; Выполнено"
 	} else {
-		text = text + "; Не выполнено"
+		text += "; Не выполнено"
 	}
 
 	return text
