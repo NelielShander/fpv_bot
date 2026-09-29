@@ -86,6 +86,7 @@ func handleUpdate(
 		return
 	}
 
+	messageText = strings.ReplaceAll(messageText, "ПВХ - ", "ПВХ-")
 	username := messageUsername(message)
 
 	log.Printf(
