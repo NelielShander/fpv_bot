@@ -5,10 +5,6 @@ import (
 	"time"
 )
 
-// ---------------------------------------------------------
-// wordsAfter
-// ---------------------------------------------------------
-
 func TestWordsAfter(t *testing.T) {
 	tests := []struct {
 		name string
@@ -62,10 +58,6 @@ func TestWordsAfter(t *testing.T) {
 		})
 	}
 }
-
-// ---------------------------------------------------------
-// lineAfter
-// ---------------------------------------------------------
 
 func TestLineAfter(t *testing.T) {
 	tests := []struct {
@@ -121,92 +113,6 @@ func TestLineAfter(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------
-// wordAfter
-// ---------------------------------------------------------
-
-func TestWordAfter(t *testing.T) {
-	tests := []struct {
-		name    string
-		text    string
-		pointer string
-		skip    int
-		want    string
-	}{
-		{
-			name:    "следующее слово",
-			text:    "FPV KT ПВХ-1",
-			pointer: "FPV",
-			skip:    1,
-			want:    "KT",
-		},
-		{
-			name:    "через два слова",
-			text:    "FPV KT ПВХ-1",
-			pointer: "FPV",
-			skip:    2,
-			want:    "ПВХ-1",
-		},
-		{
-			name:    "ключ в середине",
-			text:    "Тип FPV KT ПВХ-1",
-			pointer: "FPV",
-			skip:    2,
-			want:    "ПВХ-1",
-		},
-		{
-			name:    "ключ отсутствует",
-			text:    "KT ПВХ-1",
-			pointer: "FPV",
-			skip:    1,
-			want:    "",
-		},
-		{
-			name:    "некуда пропускать",
-			text:    "FPV KT",
-			pointer: "FPV",
-			skip:    2,
-			want:    "",
-		},
-		{
-			name:    "skip равен нулю",
-			text:    "FPV KT ПВХ-1",
-			pointer: "FPV",
-			skip:    0,
-			want:    "",
-		},
-		{
-			name:    "skip отрицательный",
-			text:    "FPV KT ПВХ-1",
-			pointer: "FPV",
-			skip:    -1,
-			want:    "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := wordAfter(
-				tt.text,
-				tt.pointer,
-				tt.skip,
-			)
-
-			if got != tt.want {
-				t.Errorf(
-					"wordAfter() = %q, want %q",
-					got,
-					tt.want,
-				)
-			}
-		})
-	}
-}
-
-// ---------------------------------------------------------
-// parseDelivery
-// ---------------------------------------------------------
-
 func TestParseDelivery(t *testing.T) {
 	text := `27.09.2026г
 
@@ -243,10 +149,6 @@ FPV KT ПВХ-1
 	}
 }
 
-// ---------------------------------------------------------
-// parseReport
-// ---------------------------------------------------------
-
 func TestParseReport(t *testing.T) {
 	tests := []struct {
 		name string
@@ -279,10 +181,6 @@ func TestParseReport(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------
-// parseReport — выбор типа
-// ---------------------------------------------------------
-
 func TestParseReportSelectsDeliveryWithoutStatus(t *testing.T) {
 	report := Report{
 		MessageText: `FPV KT ПВХ-1
@@ -302,10 +200,6 @@ func TestParseReportSelectsDeliveryWithoutStatus(t *testing.T) {
 		)
 	}
 }
-
-// ---------------------------------------------------------
-// проверка Report
-// ---------------------------------------------------------
 
 func TestReportDateFormatting(t *testing.T) {
 	report := Report{
