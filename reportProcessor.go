@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 )
 
 var counter int
@@ -57,13 +56,15 @@ func ProcessReport() string {
 
 func parseReport(report Report) string {
 	messageText := report.MessageText
+	date := report.MessageDate
 
-	var text string
+	text := date.Format("02.01.2006")
+	text += "; "
 
 	if strings.Contains(messageText, "Статус") {
-		text = parseWork(report.MessageDate, messageText)
+		text += parseWork(text, messageText)
 	} else {
-		text = parseDelivery(report.MessageDate, messageText)
+		text += parseDelivery(text, messageText)
 	}
 
 	counter++
@@ -71,10 +72,7 @@ func parseReport(report Report) string {
 	return fmt.Sprintf("%d; %s", counter, text)
 }
 
-func parseDelivery(date time.Time, messageText string) string {
-	text := date.Format("02.01.2006")
-
-	text += "; "
+func parseDelivery(text string, messageText string) string {
 	text += wordAfter(messageText, "FPV", 2)
 
 	text += "; Логистика"
@@ -83,23 +81,20 @@ func parseDelivery(date time.Time, messageText string) string {
 		text += "; Не выполнено; "
 		text += linesAfter(messageText, "Не доставлено ❌")
 	} else {
-		text += "; Выполнено;;"
+		text += "; Выполнено;"
 	}
 
 	return text
 }
 
-func parseWork(date time.Time, messageText string) string {
-	text := date.Format("02.01.2006")
-
-	text += "; "
+func parseWork(text string, messageText string) string {
 	text += wordAfter(messageText, "FPV", 2)
 	text += wordAfter(messageText, "Изделие", 1)[1:]
 
 	text += "; Боевая"
 
 	if strings.Contains(messageText, "Статус: Попадание") {
-		text += "; Выполнено;;"
+		text += "; Выполнено;"
 	} else {
 		text += "; Не выполнено;"
 		text += wordsAfter(messageText, "Статус:")
