@@ -26,7 +26,14 @@ const (
 		FROM messages
 		WHERE message_date >= date_trunc('week', CURRENT_DATE) - INTERVAL '7 days'
 		  AND message_date < date_trunc('week', CURRENT_DATE)
-		ORDER BY message_date
+		  AND (
+			  (
+				  original_text ILIKE '%статус%'
+				  AND original_text NOT ILIKE '%статус: попадание%'
+			  )
+			  OR original_text ILIKE '%Не доставлено%'
+		  )
+		ORDER BY message_date;
 	`
 )
 
