@@ -76,9 +76,7 @@ func parseDelivery(messageText string) string {
 func parseWork(messageText string) string {
 	var text strings.Builder
 
-	text.WriteString(wordAfter(messageText, "FPV", 2))
 	text.WriteString(wordAfter(messageText, "Изделие", 1)[1:])
-	text.WriteString(wordAfter(messageText, "FPV", 2))
 	text.WriteString("; Боевая; Не выполнена; ")
 	text.WriteString(wordsAfter(messageText, "Статус:"))
 
