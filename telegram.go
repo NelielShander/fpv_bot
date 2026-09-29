@@ -136,12 +136,11 @@ func handleCommandWeekly(
 	bot *tgbotapi.BotAPI,
 	chatID int64,
 ) {
-	msg := tgbotapi.NewMessage(
-		chatID,
-		ProcessReport(),
-	)
 
-	if _, err := bot.Send(msg); err != nil {
+	csvText := ProcessReport()
+
+	err := SendCSV(bot, chatID, csvText)
+	if err != nil {
 		log.Printf(
 			"ошибка отправки ответа: %v",
 			err,
@@ -230,4 +229,38 @@ func trimText(messageText string, limit int) string {
 	}
 
 	return string(runes[:limit])
+}
+
+func SendCSV(
+	bot *tgbotapi.BotAPI,
+	chatID int64,
+	csvText string,
+) error {
+	// UTF-8 BOM для корректного определения кодировки Excel
+	utf8BOM := []byte{0xEF, 0xBB, 0xBF}
+
+	data := append(utf8BOM, []byte(csvText)...)
+
+	file := tgbotapi.FileBytes{
+		Name:  reportName(),
+		Bytes: data,
+	}
+
+	msg := tgbotapi.NewDocument(chatID, file)
+
+	_, err := bot.Send(msg)
+	return err
+}
+
+func reportName() string {
+	now := time.Now()
+	weekday := int(now.Weekday())
+
+	if weekday == 0 {
+		weekday = 7
+	}
+
+	startOfWeek := now.AddDate(0, 0, 1-weekday)
+
+	return fmt.Sprintf("Отчет по применению от %s.csv", startOfWeek.Format("02.01.2006"))
 }

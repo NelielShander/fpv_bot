@@ -10,9 +10,8 @@ import (
 	"syscall"
 )
 
-var counter int
-
 func ProcessReport() string {
+
 	cfg, err := LoadConfig()
 	if err != nil {
 		log.Println(err)
@@ -39,68 +38,51 @@ func ProcessReport() string {
 		return ""
 	}
 
-	counter = 0
-
+	header := "№; Дата; Наименование; Тип задачи; Статус; Примечание\n"
 	var reportText strings.Builder
 
-	for _, report := range reports {
+	for i, report := range reports {
+		reportText.WriteString(fmt.Sprintf("%d", i+1))
+		reportText.WriteString("; ")
+		reportText.WriteString(report.MessageDate.Format("02.01.2006"))
+		reportText.WriteString("; ")
 		reportText.WriteString(parseReport(report))
 		reportText.WriteString("\n")
 	}
 
-	header := "№; Дата; Наименование; Тип задачи; Статус; Примечание\n"
-	header += reportText.String()
-
-	return header
+	return header + reportText.String()
 }
 
 func parseReport(report Report) string {
 	messageText := report.MessageText
-	date := report.MessageDate
 
-	text := date.Format("02.01.2006")
-	text += "; "
-
-	if strings.Contains(messageText, "Статус") {
-		text += parseWork(text, messageText)
+	if strings.Contains(messageText, "Статус:") {
+		return parseWork(messageText)
 	} else {
-		text += parseDelivery(text, messageText)
+		return parseDelivery(messageText)
 	}
-
-	counter++
-
-	return fmt.Sprintf("%d; %s", counter, text)
 }
 
-func parseDelivery(text string, messageText string) string {
-	text += wordAfter(messageText, "FPV", 2)
+func parseDelivery(messageText string) string {
+	var text strings.Builder
 
-	text += "; Логистика"
+	text.WriteString(wordAfter(messageText, "FPV", 2))
+	text.WriteString("; Логистика; Не выполнена; ")
+	text.WriteString(lineAfter(messageText, "Не доставлено"))
 
-	if strings.Contains(messageText, "Не доставлено") {
-		text += "; Не выполнено; "
-		text += linesAfter(messageText, "Не доставлено ❌")
-	} else {
-		text += "; Выполнено;"
-	}
-
-	return text
+	return text.String()
 }
 
-func parseWork(text string, messageText string) string {
-	text += wordAfter(messageText, "FPV", 2)
-	text += wordAfter(messageText, "Изделие", 1)[1:]
+func parseWork(messageText string) string {
+	var text strings.Builder
 
-	text += "; Боевая"
+	text.WriteString(wordAfter(messageText, "FPV", 2))
+	text.WriteString(wordAfter(messageText, "Изделие", 1)[1:])
+	text.WriteString(wordAfter(messageText, "FPV", 2))
+	text.WriteString("; Боевая; Не выполнена; ")
+	text.WriteString(wordsAfter(messageText, "Статус:"))
 
-	if strings.Contains(messageText, "Статус: Попадание") {
-		text += "; Выполнено;"
-	} else {
-		text += "; Не выполнено;"
-		text += wordsAfter(messageText, "Статус:")
-	}
-
-	return text
+	return text.String()
 }
 
 func wordsAfter(text string, key string) string {
@@ -118,7 +100,7 @@ func wordsAfter(text string, key string) string {
 	return strings.TrimSpace(text)
 }
 
-func linesAfter(text string, key string) string {
+func lineAfter(text string, key string) string {
 	pos := strings.Index(text, key)
 	if pos == -1 {
 		return ""
@@ -128,28 +110,26 @@ func linesAfter(text string, key string) string {
 
 	lines := strings.Split(text, "\n")
 
-	result := make([]string, 0, len(lines))
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
 
 		if line != "" {
-			result = append(result, line)
+			return line
 		}
 	}
 
-	return strings.Join(result, " ")
+	return ""
 }
 
 func wordAfter(text string, pointer string, skip int) string {
-	if !strings.Contains(text, pointer) {
+	if skip < 1 {
 		return ""
 	}
 
 	words := strings.Fields(text)
 
 	for i, word := range words {
-		if word == pointer && i+1 < len(words) {
+		if word == pointer && i+skip < len(words) {
 			return words[i+skip]
 		}
 	}
