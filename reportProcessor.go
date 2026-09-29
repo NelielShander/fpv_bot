@@ -50,7 +50,7 @@ func ProcessReport() string {
 	}
 
 	header := "№; Дата; Наименование; Тип задачи; Статус; Примечание\n"
-	header += strings.TrimSuffix(reportText.String(), "\n")
+	header += reportText.String()
 
 	return header
 }
@@ -81,7 +81,7 @@ func parseDelivery(date time.Time, messageText string) string {
 
 	if strings.Contains(messageText, "Не доставлено") {
 		text += "; Не выполнено; "
-		text += wordsAfter(messageText, "Не доставлено")
+		text += linesAfter(messageText, "Не доставлено ❌")
 	} else {
 		text += "; Выполнено;;"
 	}
@@ -102,21 +102,48 @@ func parseWork(date time.Time, messageText string) string {
 		text += "; Выполнено;;"
 	} else {
 		text += "; Не выполнено;"
+		text += wordsAfter(messageText, "Статус:")
 	}
 
 	return text
 }
 
-func wordsAfter(text, target string) string {
-	words := strings.Fields(text)
+func wordsAfter(text string, key string) string {
+	pos := strings.Index(text, key)
+	if pos == -1 {
+		return ""
+	}
 
-	for i, word := range words {
-		if word == target && i+1 < len(words) {
-			return strings.Join(words[i+1:], " ")
+	text = text[pos+len(key):]
+
+	if end := strings.IndexAny(text, "\r\n"); end != -1 {
+		text = text[:end]
+	}
+
+	return strings.TrimSpace(text)
+}
+
+func linesAfter(text string, key string) string {
+	pos := strings.Index(text, key)
+	if pos == -1 {
+		return ""
+	}
+
+	text = text[pos+len(key):]
+
+	lines := strings.Split(text, "\n")
+
+	result := make([]string, 0, len(lines))
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+
+		if line != "" {
+			result = append(result, line)
 		}
 	}
 
-	return ""
+	return strings.Join(result, " ")
 }
 
 func wordAfter(text string, pointer string, skip int) string {
