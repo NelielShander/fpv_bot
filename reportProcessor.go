@@ -83,7 +83,7 @@ func parseDelivery(date time.Time, messageText string) string {
 		text += "; Не выполнено; "
 		text += wordsAfter(messageText, "Не доставлено")
 	} else {
-		text += "; Выполнено"
+		text += "; Выполнено;;"
 	}
 
 	return text
@@ -99,9 +99,9 @@ func parseWork(date time.Time, messageText string) string {
 	text += "; Боевая"
 
 	if strings.Contains(messageText, "Статус: Попадание") {
-		text += "; Выполнено"
+		text += "; Выполнено;;"
 	} else {
-		text += "; Не выполнено"
+		text += "; Не выполнено;"
 	}
 
 	return text
@@ -120,19 +120,17 @@ func wordsAfter(text, target string) string {
 }
 
 func wordAfter(text string, pointer string, skip int) string {
-	target := ""
-
 	if !strings.Contains(text, pointer) {
-		return target
+		return ""
 	}
 
 	words := strings.Fields(text)
 
 	for i, word := range words {
 		if word == pointer && i+1 < len(words) {
-			target = words[i+skip]
+			return words[i+skip]
 		}
 	}
 
-	return target
+	return ""
 }
