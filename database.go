@@ -16,6 +16,7 @@ const (
 			message_date
 		)
 		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (telegram_message_id) DO NOTHING
 	`
 
 	getLastWeekReportsQuery = `
@@ -35,6 +36,17 @@ const (
 		  )
 		ORDER BY message_date;
 	`
+
+	getDailyReportsQuery = `
+		SELECT
+			username,
+			original_text,
+			message_date
+		FROM messages
+		WHERE message_date >= CURRENT_DATE - INTERVAL '2 days'
+		   AND message_date <  CURRENT_DATE - INTERVAL '1 day'
+		ORDER BY message_date;
+	`
 )
 
 type Database struct {
@@ -47,10 +59,7 @@ type Report struct {
 	MessageDate time.Time
 }
 
-func NewDatabase(
-	ctx context.Context,
-	url string,
-) (*Database, error) {
+func NewDatabase(ctx context.Context, url string) (*Database, error) {
 	pool, err := pgxpool.New(ctx, url)
 	if err != nil {
 		return nil, err
@@ -72,10 +81,7 @@ func (db *Database) Close() {
 	}
 }
 
-func (db *Database) SaveMessage(
-	ctx context.Context,
-	data MessageData,
-) error {
+func (db *Database) SaveMessage(ctx context.Context, data MessageData) error {
 	_, err := db.pool.Exec(
 		ctx,
 		insertMessageQuery,
@@ -88,14 +94,16 @@ func (db *Database) SaveMessage(
 	return err
 }
 
-func GetLastWeekReports(
-	ctx context.Context,
-	db *Database,
-) ([]Report, error) {
-	rows, err := db.pool.Query(
-		ctx,
-		getLastWeekReportsQuery,
-	)
+func GetLastWeekReports(ctx context.Context, db *Database) ([]Report, error) {
+	return getReports(ctx, db, getLastWeekReportsQuery)
+}
+
+func GetDailyReports(ctx context.Context, db *Database) ([]Report, error) {
+	return getReports(ctx, db, getDailyReportsQuery)
+}
+
+func getReports(ctx context.Context, db *Database, query string) ([]Report, error) {
+	rows, err := db.pool.Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -106,12 +114,11 @@ func GetLastWeekReports(
 	for rows.Next() {
 		var report Report
 
-		err := rows.Scan(
+		if err := rows.Scan(
 			&report.Username,
 			&report.MessageText,
 			&report.MessageDate,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, err
 		}
 

@@ -10,29 +10,8 @@ import (
 	"syscall"
 )
 
-func ProcessReport() string {
-
-	cfg, err := LoadConfig()
-	if err != nil {
-		log.Println(err)
-		return ""
-	}
-
-	ctx, cancel := signal.NotifyContext(
-		context.Background(),
-		os.Interrupt,
-		syscall.SIGTERM,
-	)
-	defer cancel()
-
-	db, err := NewDatabase(ctx, cfg.DatabaseURL)
-	if err != nil {
-		log.Println(err)
-		return ""
-	}
-	defer db.Close()
-
-	reports, err := GetLastWeekReports(ctx, db)
+func ProcessWeeklyReport() string {
+	reports, err := GetLastWeekReports(loadCtxDb())
 	if err != nil {
 		log.Println(err)
 		return ""
@@ -53,14 +32,57 @@ func ProcessReport() string {
 	return header + reportText.String()
 }
 
+func ProcessDailyReport() string {
+
+	reports, err := GetDailyReports(loadCtxDb())
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+
+	header := "№; Дата\n"
+	var reportText strings.Builder
+
+	for i, report := range reports {
+		reportText.WriteString(fmt.Sprintf("%d", i+1))
+		reportText.WriteString("; ")
+		reportText.WriteString(report.MessageDate.Format("02.01.2006"))
+		reportText.WriteString("\n")
+	}
+
+	return header + reportText.String()
+}
+
+func loadCtxDb() (context.Context, *Database) {
+	cfg, err := LoadConfig()
+	if err != nil {
+		log.Println(err)
+	}
+
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer cancel()
+
+	db, err := NewDatabase(ctx, cfg.DatabaseURL)
+	if err != nil {
+		log.Println(err)
+	}
+	defer db.Close()
+
+	return ctx, db
+}
+
 func parseReport(report Report) string {
 	messageText := report.MessageText
 
 	if strings.Contains(messageText, "Статус:") {
 		return parseWork(messageText)
-	} else {
-		return parseDelivery(messageText)
 	}
+
+	return parseDelivery(messageText)
 }
 
 func parseDelivery(messageText string) string {
@@ -83,21 +105,6 @@ func parseWork(messageText string) string {
 	return text.String()
 }
 
-func wordsAfter(text string, key string) string {
-	pos := strings.Index(text, key)
-	if pos == -1 {
-		return ""
-	}
-
-	text = text[pos+len(key):]
-
-	if end := strings.IndexAny(text, "\r\n"); end != -1 {
-		text = text[:end]
-	}
-
-	return strings.TrimSpace(text)
-}
-
 func lineAfter(text string, key string) string {
 	pos := strings.Index(text, key)
 	if pos == -1 {
@@ -117,6 +124,21 @@ func lineAfter(text string, key string) string {
 	}
 
 	return ""
+}
+
+func wordsAfter(text string, key string) string {
+	pos := strings.Index(text, key)
+	if pos == -1 {
+		return ""
+	}
+
+	text = text[pos+len(key):]
+
+	if end := strings.IndexAny(text, "\r\n"); end != -1 {
+		text = text[:end]
+	}
+
+	return strings.TrimSpace(text)
 }
 
 func wordAfter(text string, pointer string, skip int) string {

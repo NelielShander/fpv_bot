@@ -20,13 +20,8 @@ type Scheduler struct {
 	loc *time.Location
 }
 
-func NewScheduler(
-	bot *tgbotapi.BotAPI,
-	cfg Config,
-) (*Scheduler, error) {
-	location, err := time.LoadLocation(
-		cfg.TZ,
-	)
+func NewScheduler(bot *tgbotapi.BotAPI, cfg Config) (*Scheduler, error) {
+	location, err := time.LoadLocation(cfg.TZ)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"загрузка часового пояса %s: %w",
@@ -62,9 +57,7 @@ func (s *Scheduler) Run(ctx context.Context) {
 	}
 }
 
-func (s *Scheduler) nextRun(
-	now time.Time,
-) time.Time {
+func (s *Scheduler) nextRun(now time.Time) time.Time {
 	now = now.In(s.loc)
 
 	next := time.Date(
