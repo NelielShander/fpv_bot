@@ -40,7 +40,6 @@ func NewScheduler(bot *tgbotapi.BotAPI, cfg Config) (*Scheduler, error) {
 func (s *Scheduler) Run(ctx context.Context) {
 	for {
 		next := s.nextRun(time.Now())
-
 		timer := time.NewTimer(
 			time.Until(next),
 		)

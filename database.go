@@ -25,8 +25,8 @@ const (
 			original_text,
 			message_date
 		FROM messages
-		WHERE message_date >= date_trunc('week', CURRENT_DATE) - INTERVAL '7 days'
-		  AND message_date < date_trunc('week', CURRENT_DATE)
+		WHERE message_date >= date_trunc('week', CURRENT_TIMESTAMP AT TIME ZONE $1) - INTERVAL '7 days'
+		  AND message_date < date_trunc('week', CURRENT_TIMESTAMP AT TIME ZONE $1)
 		  AND (
 			  (
 				  original_text ILIKE '%статус%'
@@ -43,8 +43,8 @@ const (
 			original_text,
 			message_date
 		FROM messages
-		WHERE message_date >= CURRENT_DATE - INTERVAL '2 days'
-		   AND message_date <  CURRENT_DATE - INTERVAL '1 day'
+		WHERE message_date >= (CURRENT_TIMESTAMP AT TIME ZONE $1) - INTERVAL '2 days'
+		   AND message_date <  (CURRENT_TIMESTAMP AT TIME ZONE $1) - INTERVAL '1 day'
 		ORDER BY message_date;
 	`
 )
@@ -94,22 +94,27 @@ func (db *Database) SaveMessage(ctx context.Context, data MessageData) error {
 	return err
 }
 
-func GetLastWeekReports(ctx context.Context, db *Database) ([]Report, error) {
-	return getReports(ctx, db, getLastWeekReportsQuery)
+func GetLastWeekReports(ctx context.Context, db *Database, loc *time.Location) ([]Report, error) {
+	return getReports(ctx, db, getLastWeekReportsQuery, loc)
 }
 
-func GetDailyReports(ctx context.Context, db *Database) ([]Report, error) {
-	return getReports(ctx, db, getDailyReportsQuery)
+func GetDailyReports(ctx context.Context, db *Database, loc *time.Location) ([]Report, error) {
+	return getReports(ctx, db, getDailyReportsQuery, loc)
 }
 
-func getReports(ctx context.Context, db *Database, query string) ([]Report, error) {
-	rows, err := db.pool.Query(ctx, query)
+func getReports(ctx context.Context, db *Database, query string, loc *time.Location) ([]Report, error) {
+	rows, err := db.pool.Query(
+		ctx,
+		query,
+		loc.String(),
+	)
+
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	reports := make([]Report, 0)
+	var reports []Report
 
 	for rows.Next() {
 		var report Report

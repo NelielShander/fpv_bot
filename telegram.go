@@ -19,6 +19,13 @@ const (
 	commandDaily  = "sutochny"
 )
 
+type Handler struct {
+	ctx context.Context
+	bot *tgbotapi.BotAPI
+	db  *Database
+	loc *time.Location
+}
+
 type MessageData struct {
 	TelegramMessageID int
 	Username          string
@@ -30,16 +37,46 @@ func NewTelegramBot(token string) (*tgbotapi.BotAPI, error) {
 	return tgbotapi.NewBotAPI(token)
 }
 
-func RunUpdates(ctx context.Context, bot *tgbotapi.BotAPI, db *Database) {
-	updateConfig := tgbotapi.NewUpdate(0)
-	updateConfig.Timeout = updatesTimeout
+func RunUpdates(ctx context.Context, bot *tgbotapi.BotAPI, db *Database, loc *time.Location) {
+	handler := &Handler{
+		ctx: ctx,
+		bot: bot,
+		db:  db,
+		loc: loc,
+	}
 
-	updates := bot.GetUpdatesChan(updateConfig)
+	handler.runUpdates()
+}
+
+func (h *Handler) SendCSV(bot *tgbotapi.BotAPI, chatID int64, csvText string) error {
+	// UTF-8 BOM для корректного определения кодировки Excel.
+	data := append(
+		[]byte{0xEF, 0xBB, 0xBF},
+		[]byte(csvText)...,
+	)
+
+	file := tgbotapi.FileBytes{
+		Name:  reportName(h.loc),
+		Bytes: data,
+	}
+
+	msg := tgbotapi.NewDocument(chatID, file)
+
+	_, err := bot.Send(msg)
+
+	return err
+}
+
+func (h *Handler) runUpdates() {
+	config := tgbotapi.NewUpdate(0)
+	config.Timeout = updatesTimeout
+
+	updates := h.bot.GetUpdatesChan(config)
 
 	for {
 		select {
-		case <-ctx.Done():
-			bot.StopReceivingUpdates()
+		case <-h.ctx.Done():
+			h.bot.StopReceivingUpdates()
 			log.Println("Получение обновлений остановлено")
 			return
 
@@ -49,130 +86,105 @@ func RunUpdates(ctx context.Context, bot *tgbotapi.BotAPI, db *Database) {
 				return
 			}
 
-			handleUpdate(ctx, bot, db, update)
+			h.handleUpdate(update)
 		}
 	}
 }
 
-func SendCSV(bot *tgbotapi.BotAPI, chatID int64, csvText string) error {
-	// UTF-8 BOM для корректного определения кодировки Excel
-	utf8BOM := []byte{0xEF, 0xBB, 0xBF}
-
-	data := append(utf8BOM, []byte(csvText)...)
-
-	file := tgbotapi.FileBytes{
-		Name:  reportName(),
-		Bytes: data,
-	}
-
-	msg := tgbotapi.NewDocument(chatID, file)
-
-	_, err := bot.Send(msg)
-	return err
-}
-
-func handleUpdate(ctx context.Context, bot *tgbotapi.BotAPI, db *Database, update tgbotapi.Update) {
+func (h *Handler) handleUpdate(update tgbotapi.Update) {
 	message := update.Message
 
 	if message == nil {
 		return
 	}
 
-	messageText := getMessageText(message)
-
-	if messageText == "" {
-		return
-	}
-
 	if message.IsCommand() {
-		handleCommand(bot, message)
+		h.handleCommand(message)
 		return
 	}
 
-	if hasLessLines(messageText, 10) {
+	originalText := messageText(message)
+
+	if originalText == "" || hasLessLines(originalText, 10) {
 		return
 	}
 
-	messageText = strings.ReplaceAll(messageText, "ПВХ - ", "ПВХ-")
-	messageText = strings.ReplaceAll(messageText, "ПВХ1", "ПВХ-1")
+	text := normalizeMessageText(originalText)
 
 	username := messageUsername(message)
 
 	log.Printf(
 		"Новое сообщение от '%s: %s...'",
 		username,
-		trimText(messageText, 50),
+		trimText(text, 50),
 	)
 
-	if err := addReaction(bot, message, reactionEmoji); err != nil {
-		log.Printf(
-			"ошибка добавления реакции: %v",
-			err,
-		)
+	data := MessageData{
+		TelegramMessageID: message.MessageID,
+		Username:          username,
+		OriginalText:      text,
+		MessageDate:       message.Time(),
 	}
 
-	data, ok := processMessage(message)
-	if !ok {
-		log.Println("сообщение не удалось обработать")
-		return
-	}
-
-	if err := db.SaveMessage(ctx, data); err != nil {
-		log.Printf(
-			"ошибка сохранения сообщения: %v",
-			err,
-		)
+	if err := h.db.SaveMessage(h.ctx, data); err != nil {
+		log.Printf("ошибка сохранения сообщения: %v", err)
 		return
 	}
 
 	log.Println("Сообщение сохранено в БД")
-}
 
-func handleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	switch message.Command() {
-	case commandWeekly:
-		handleCommandWeekly(bot, message.Chat.ID)
-
-	case commandDaily:
-		handleCommandDaily(bot, message.Chat.ID)
+	if err := addReaction(h.bot, message); err != nil {
+		log.Printf("ошибка добавления реакции: %v", err)
 	}
 }
 
-func handleCommandDaily(bot *tgbotapi.BotAPI, chatID int64) {
-	handleReportCommand(bot, chatID, ProcessDailyReport)
-}
+func (h *Handler) handleCommand(message *tgbotapi.Message) {
+	var csvText string
 
-func handleCommandWeekly(bot *tgbotapi.BotAPI, chatID int64) {
-	handleReportCommand(bot, chatID, ProcessWeeklyReport)
-}
+	switch message.Command() {
+	case commandWeekly:
+		csvText = ProcessWeeklyReport(h)
 
-func handleReportCommand(bot *tgbotapi.BotAPI, chatID int64, reportFunc func() string) {
-	csvText := reportFunc()
+	case commandDaily:
+		csvText = ProcessDailyReport(h)
 
-	if err := SendCSV(bot, chatID, csvText); err != nil {
+	default:
+		return
+	}
+
+	if err := h.SendCSV(h.bot, message.Chat.ID, csvText); err != nil {
 		log.Printf("ошибка отправки ответа: %v", err)
 	}
 }
 
-func processMessage(message *tgbotapi.Message) (MessageData, bool) {
-	text := message.Caption
-
-	if message.Text != "" {
-		text = message.Text
+func addReaction(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
+	if message == nil || message.Chat == nil {
+		return fmt.Errorf("сообщение или чат отсутствует")
 	}
 
-	text = strings.TrimSpace(text)
+	params := tgbotapi.Params{
+		"chat_id":    strconv.FormatInt(message.Chat.ID, 10),
+		"message_id": strconv.Itoa(message.MessageID),
+		"reaction":   `[{"type":"emoji","emoji":"` + reactionEmoji + `"}]`,
+	}
+
+	_, err := bot.MakeRequest("setMessageReaction", params)
+
+	return err
+}
+
+func messageText(message *tgbotapi.Message) string {
+	if message == nil {
+		return ""
+	}
+
+	text := message.Text
 
 	if text == "" {
-		return MessageData{}, false
+		text = message.Caption
 	}
 
-	return MessageData{
-		TelegramMessageID: message.MessageID,
-		Username:          messageUsername(message),
-		OriginalText:      text,
-		MessageDate:       message.Time(),
-	}, true
+	return strings.TrimSpace(text)
 }
 
 func messageUsername(message *tgbotapi.Message) string {
@@ -183,54 +195,33 @@ func messageUsername(message *tgbotapi.Message) string {
 	return message.From.UserName
 }
 
-func getMessageText(message *tgbotapi.Message) string {
-	if message.Text != "" {
-		return message.Text
-	}
+func normalizeMessageText(text string) string {
+	text = strings.ReplaceAll(text, "ПВХ - ", "ПВХ-")
+	text = strings.ReplaceAll(text, "ПВХ1", "ПВХ-1")
 
-	return message.Caption
-}
-
-func addReaction(bot *tgbotapi.BotAPI, message *tgbotapi.Message, emoji string) error {
-	if message == nil || message.Chat == nil {
-		return fmt.Errorf(
-			"сообщение или чат отсутствует",
-		)
-	}
-
-	params := tgbotapi.Params{
-		"chat_id":    strconv.FormatInt(message.Chat.ID, 10),
-		"message_id": strconv.Itoa(message.MessageID),
-		"reaction":   `[{"type":"emoji","emoji":"` + emoji + `"}]`,
-	}
-
-	_, err := bot.MakeRequest(
-		"setMessageReaction",
-		params,
-	)
-
-	return err
+	return text
 }
 
 func hasLessLines(text string, lines int) bool {
 	return strings.Count(text, "\n") <= lines
 }
 
-func trimText(messageText string, limit int) string {
-	text := strings.ReplaceAll(messageText, "\n", " ")
+func trimText(text string, limit int) string {
+	text = strings.ReplaceAll(text, "\n", " ")
+
 	runes := []rune(text)
 
-	if limit > len(runes) {
-		limit = len(runes)
+	if len(runes) <= limit {
+		return text
 	}
 
 	return string(runes[:limit])
 }
 
-func reportName() string {
-	now := time.Now()
-	weekday := int(now.Weekday())
+func reportName(loc *time.Location) string {
+	now := time.Now().In(loc)
 
+	weekday := int(now.Weekday())
 	if weekday == 0 {
 		weekday = 7
 	}

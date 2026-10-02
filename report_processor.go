@@ -1,17 +1,13 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 )
 
-func ProcessWeeklyReport() string {
-	reports, err := GetLastWeekReports(loadCtxDb())
+func ProcessWeeklyReport(handler *Handler) string {
+	reports, err := GetLastWeekReports(handler.ctx, handler.db, handler.loc)
 	if err != nil {
 		log.Println(err)
 		return ""
@@ -32,9 +28,8 @@ func ProcessWeeklyReport() string {
 	return header + reportText.String()
 }
 
-func ProcessDailyReport() string {
-
-	reports, err := GetDailyReports(loadCtxDb())
+func ProcessDailyReport(handler *Handler) string {
+	reports, err := GetDailyReports(handler.ctx, handler.db, handler.loc)
 	if err != nil {
 		log.Println(err)
 		return ""
@@ -51,28 +46,6 @@ func ProcessDailyReport() string {
 	}
 
 	return header + reportText.String()
-}
-
-func loadCtxDb() (context.Context, *Database) {
-	cfg, err := LoadConfig()
-	if err != nil {
-		log.Println(err)
-	}
-
-	ctx, cancel := signal.NotifyContext(
-		context.Background(),
-		os.Interrupt,
-		syscall.SIGTERM,
-	)
-	defer cancel()
-
-	db, err := NewDatabase(ctx, cfg.DatabaseURL)
-	if err != nil {
-		log.Println(err)
-	}
-	defer db.Close()
-
-	return ctx, db
 }
 
 func parseReport(report Report) string {
