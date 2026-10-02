@@ -16,7 +16,7 @@ const (
 			message_date
 		)
 		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (telegram_message_id) DO NOTHING
+		ON CONFLICT (telegram_message_id) DO NOTHING;
 	`
 
 	getLastWeekReportsQuery = `
