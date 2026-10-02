@@ -16,7 +16,7 @@ const (
 	updatesTimeout = 60
 
 	commandWeekly = "nedelny"
-	commandDaily  = "sutochny"
+	commandDaily  = "za_den"
 )
 
 type Handler struct {
@@ -219,7 +219,7 @@ func trimText(text string, limit int) string {
 }
 
 func reportName(loc *time.Location) string {
-	now := time.Now().In(loc)
+	now := time.Now().In(loc).Add(-7 * 24 * time.Hour)
 
 	weekday := int(now.Weekday())
 	if weekday == 0 {
