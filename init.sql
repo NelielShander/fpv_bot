@@ -18,3 +18,6 @@ CREATE TABLE IF NOT EXISTS public.messages
     message_date        TIMESTAMP NOT NULL,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS messages_telegram_message_id_uidx
+    ON messages (telegram_message_id);
