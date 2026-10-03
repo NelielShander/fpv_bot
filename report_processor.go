@@ -52,10 +52,9 @@ func parseReport(report Report) string {
 	text := report.MessageText
 	reportType := report.Type()
 
-	switch reportType {
-	case "Боевая":
+	if reportType == "Боевая" {
 		return parseWork(text, reportType)
-	default:
+	} else {
 		return parseDelivery(text, reportType)
 	}
 }

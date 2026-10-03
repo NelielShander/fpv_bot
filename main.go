@@ -39,6 +39,10 @@ func main() {
 		log.Fatalf("Ошибка создания Telegram-бота: %v", err)
 	}
 
+	if err := SetBotCommands(bot); err != nil {
+		log.Printf("ошибка установки команд: %v", err)
+	}
+
 	log.Printf("Бот запущен: @%s", bot.Self.UserName)
 
 	scheduler, err := NewScheduler(bot, cfg)

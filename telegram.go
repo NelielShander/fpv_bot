@@ -15,8 +15,9 @@ const (
 	reactionEmoji  = "👀"
 	updatesTimeout = 60
 
-	commandWeekly = "nedelny"
-	commandDaily  = "za_den"
+	commandWeekly  = "nedelny"
+	commandMorning = "utro"
+	commandEvening = "vecher"
 )
 
 type Handler struct {
@@ -48,7 +49,30 @@ func RunUpdates(ctx context.Context, bot *tgbotapi.BotAPI, db *Database, loc *ti
 	handler.runUpdates()
 }
 
-func (h *Handler) SendCSV(bot *tgbotapi.BotAPI, chatID int64, csvText string) error {
+func SetBotCommands(bot *tgbotapi.BotAPI) error {
+	commands := []tgbotapi.BotCommand{
+		{
+			Command:     commandWeekly,
+			Description: "отчет по расходу за неделю",
+		},
+		{
+			Command:     commandMorning,
+			Description: "отчет по применению за ночь",
+		},
+		{
+			Command:     commandEvening,
+			Description: "Применение за день",
+		},
+	}
+
+	config := tgbotapi.NewSetMyCommands(commands...)
+	_, err := bot.Request(config)
+
+	return err
+}
+
+func (h *Handler) sendCSV(chatID int64, csvText string) error {
+	bot := h.bot
 	// UTF-8 BOM для корректного определения кодировки Excel.
 	data := append(
 		[]byte{0xEF, 0xBB, 0xBF},
@@ -142,15 +166,23 @@ func (h *Handler) handleCommand(message *tgbotapi.Message) {
 	var csvText string
 
 	switch message.Command() {
+	case "start":
+		processStart(h.bot, message.Chat.ID)
+		return
+	case "help":
+		processHelp(h.bot, message.Chat.ID)
+		return
 	case commandWeekly:
 		csvText = ProcessWeeklyReport(h)
-	case commandDaily:
+	case commandMorning:
+		csvText = ProcessDailyReport(h)
+	case commandEvening:
 		csvText = ProcessDailyReport(h)
 	default:
 		return
 	}
 
-	if err := h.SendCSV(h.bot, message.Chat.ID, csvText); err != nil {
+	if err := h.sendCSV(message.Chat.ID, csvText); err != nil {
 		log.Printf("ошибка отправки ответа: %v", err)
 	}
 }
@@ -201,7 +233,7 @@ func normalizeMessageText(text string) string {
 }
 
 func hasLessLines(text string, lines int) bool {
-	return strings.Count(text, "\n") <= lines
+	return len(strings.Split(text, "\n")) <= lines
 }
 
 func trimText(text string, limit int) string {
@@ -217,7 +249,7 @@ func trimText(text string, limit int) string {
 }
 
 func reportName(loc *time.Location) string {
-	now := time.Now().In(loc).Add(-7 * 24 * time.Hour)
+	now := time.Now().In(loc).AddDate(0, 0, -7)
 
 	weekday := int(now.Weekday())
 	if weekday == 0 {
@@ -230,4 +262,31 @@ func reportName(loc *time.Location) string {
 		"Отчет по применению от %s.csv",
 		startOfWeek.Format("02.01.2006"),
 	)
+}
+
+func processStart(bot *tgbotapi.BotAPI, chatID int64) {
+	msg := tgbotapi.NewMessage(
+		chatID,
+		"Бот запущен.",
+	)
+	_, err := bot.Send(msg)
+	if err != nil {
+		log.Printf("ошибка отправки сообщения: %v", err)
+	}
+}
+
+func processHelp(bot *tgbotapi.BotAPI, chatID int64) {
+	msg := tgbotapi.NewMessage(
+		chatID,
+		"Доступные команды:\n"+
+			"/start — Запуск бота\n"+
+			"/help — помощь\n"+
+			"/nedelny — Расход за неделю\n"+
+			"/utro — Применение за ночь\n"+
+			"/vecher — Применение за день",
+	)
+	_, err := bot.Send(msg)
+	if err != nil {
+		log.Printf("ошибка отправки сообщения: %v", err)
+	}
 }
