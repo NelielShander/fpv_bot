@@ -49,31 +49,35 @@ func ProcessDailyReport(handler *Handler) string {
 }
 
 func parseReport(report Report) string {
-	messageText := report.MessageText
+	text := report.MessageText
+	reportType := report.Type()
 
-	if strings.Contains(messageText, "Статус:") {
-		return parseWork(messageText)
+	switch reportType {
+	case "Боевая":
+		return parseWork(text, reportType)
+	default:
+		return parseDelivery(text, reportType)
 	}
-
-	return parseDelivery(messageText)
 }
 
-func parseDelivery(messageText string) string {
+func parseDelivery(reportText string, reportType string) string {
 	var text strings.Builder
 
-	text.WriteString(wordAfter(messageText, "FPV", 2))
-	text.WriteString("; Логистика; Не выполнена; ")
-	text.WriteString(lineAfter(messageText, "Не доставлено"))
+	text.WriteString(wordAfter(reportText, "FPV", 2))
+	text.WriteString(fmt.Sprintf("; %s;", reportType))
+	text.WriteString("Не выполнена; ")
+	text.WriteString(lineAfter(reportText, "Не доставлено"))
 
 	return text.String()
 }
 
-func parseWork(messageText string) string {
+func parseWork(reportText string, reportType string) string {
 	var text strings.Builder
 
-	text.WriteString(wordAfter(messageText, "Изделие", 1)[1:])
-	text.WriteString("; Боевая; Не выполнена; ")
-	text.WriteString(wordsAfter(messageText, "Статус:"))
+	text.WriteString(wordAfter(reportText, "Изделие", 1)[1:])
+	text.WriteString(fmt.Sprintf("; %s;", reportType))
+	text.WriteString("Не выполнена; ")
+	text.WriteString(wordsAfter(reportText, "Статус:"))
 
 	return text.String()
 }

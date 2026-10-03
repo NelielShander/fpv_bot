@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -92,6 +93,14 @@ func (db *Database) SaveMessage(ctx context.Context, data MessageData) error {
 	)
 
 	return err
+}
+
+func (report *Report) Type() string {
+	if strings.Contains(report.MessageText, "Статус:") {
+		return "Боевая"
+	} else {
+		return "Логистика"
+	}
 }
 
 func GetLastWeekReports(ctx context.Context, db *Database, loc *time.Location) ([]Report, error) {

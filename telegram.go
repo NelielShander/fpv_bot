@@ -144,10 +144,8 @@ func (h *Handler) handleCommand(message *tgbotapi.Message) {
 	switch message.Command() {
 	case commandWeekly:
 		csvText = ProcessWeeklyReport(h)
-
 	case commandDaily:
 		csvText = ProcessDailyReport(h)
-
 	default:
 		return
 	}
