@@ -7,13 +7,13 @@ import (
 )
 
 func ProcessWeeklyReport(handler *Handler) string {
-	reports, err := GetLastWeekReports(handler.ctx, handler.db, handler.loc)
+	reports, err := GetLastWeekReports(handler.ctx, handler.db)
 	if err != nil {
 		log.Println(err)
 		return ""
 	}
 
-	header := "№; Дата; Наименование; Тип задачи; Статус; Примечание\n"
+	header := "№; Дата; Вид БпЛА; Тип задачи; Статус; Примечание\n"
 	var reportText strings.Builder
 
 	for i, report := range reports {
@@ -28,14 +28,14 @@ func ProcessWeeklyReport(handler *Handler) string {
 	return header + reportText.String()
 }
 
-func ProcessDailyReport(handler *Handler) string {
-	reports, err := GetDailyReports(handler.ctx, handler.db, handler.loc)
+func ProcessDailyReport(handler *Handler, period []string) string {
+	reports, err := GetDailyReports(handler.ctx, handler.db, period)
 	if err != nil {
 		log.Println(err)
 		return ""
 	}
 
-	header := "№; Дата\n"
+	header := "№; Дата; Позывной; Время; Вид БпЛА; Тип задачи; Координата Х; Координата У; Статус\n"
 	var reportText strings.Builder
 
 	for i, report := range reports {
@@ -43,6 +43,7 @@ func ProcessDailyReport(handler *Handler) string {
 		reportText.WriteString("; ")
 		reportText.WriteString(report.MessageDate.Format("02.01.2006"))
 		reportText.WriteString("\n")
+
 	}
 
 	return header + reportText.String()

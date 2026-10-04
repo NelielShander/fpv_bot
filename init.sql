@@ -1,3 +1,5 @@
+ALTER DATABASE fpv_lists SET timezone TO 'Europe/Moscow';
+
 CREATE TABLE IF NOT EXISTS public.records
 (
     id         BIGSERIAL PRIMARY KEY,

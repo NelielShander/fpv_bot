@@ -26,8 +26,8 @@ const (
 			original_text,
 			message_date
 		FROM messages
-		WHERE message_date >= date_trunc('week', CURRENT_TIMESTAMP AT TIME ZONE $1) - INTERVAL '7 days'
-		  AND message_date < date_trunc('week', CURRENT_TIMESTAMP AT TIME ZONE $1)
+		WHERE message_date >= date_trunc('week', CURRENT_DATE) - INTERVAL '7 days'
+		  AND message_date < date_trunc('week', CURRENT_DATE)
 		  AND (
 			  (
 				  original_text ILIKE '%статус%'
@@ -39,13 +39,13 @@ const (
 	`
 
 	getDailyReportsQuery = `
-		SELECT
+		SELECT 
 			username,
 			original_text,
 			message_date
 		FROM messages
-		WHERE message_date >= (CURRENT_TIMESTAMP AT TIME ZONE $1) - INTERVAL '2 days'
-		   AND message_date <  (CURRENT_TIMESTAMP AT TIME ZONE $1) - INTERVAL '1 day'
+		WHERE messages.message_date >= CURRENT_DATE	 + $1::interval
+		  AND messages.message_date < CURRENT_DATE + $2::interval
 		ORDER BY message_date;
 	`
 )
@@ -103,21 +103,16 @@ func (report *Report) Type() string {
 	}
 }
 
-func GetLastWeekReports(ctx context.Context, db *Database, loc *time.Location) ([]Report, error) {
-	return getReports(ctx, db, getLastWeekReportsQuery, loc)
+func GetLastWeekReports(ctx context.Context, db *Database) ([]Report, error) {
+	return getReports(ctx, db, getLastWeekReportsQuery)
 }
 
-func GetDailyReports(ctx context.Context, db *Database, loc *time.Location) ([]Report, error) {
-	return getReports(ctx, db, getDailyReportsQuery, loc)
+func GetDailyReports(ctx context.Context, db *Database, period []string) ([]Report, error) {
+	return getReports(ctx, db, getDailyReportsQuery, period[0], period[1])
 }
 
-func getReports(ctx context.Context, db *Database, query string, loc *time.Location) ([]Report, error) {
-	rows, err := db.pool.Query(
-		ctx,
-		query,
-		loc.String(),
-	)
-
+func getReports(ctx context.Context, db *Database, query string, args ...any) ([]Report, error) {
+	rows, err := db.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

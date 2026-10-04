@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -54,13 +52,7 @@ func main() {
 
 	log.Println("Ежедневная отправка сообщений включена")
 
-	tz := cfg.TZ
-	location, err := time.LoadLocation(tz)
-	if err != nil {
-		log.Printf("Загрузка часового пояса %s: %w", tz, err)
-	}
-
-	RunUpdates(ctx, bot, db, location)
+	RunUpdates(ctx, bot, db)
 
 	log.Println("Бот остановлен")
 }

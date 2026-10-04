@@ -24,7 +24,6 @@ type Handler struct {
 	ctx context.Context
 	bot *tgbotapi.BotAPI
 	db  *Database
-	loc *time.Location
 }
 
 type MessageData struct {
@@ -38,12 +37,11 @@ func NewTelegramBot(token string) (*tgbotapi.BotAPI, error) {
 	return tgbotapi.NewBotAPI(token)
 }
 
-func RunUpdates(ctx context.Context, bot *tgbotapi.BotAPI, db *Database, loc *time.Location) {
+func RunUpdates(ctx context.Context, bot *tgbotapi.BotAPI, db *Database) {
 	handler := &Handler{
 		ctx: ctx,
 		bot: bot,
 		db:  db,
-		loc: loc,
 	}
 
 	handler.runUpdates()
@@ -80,7 +78,7 @@ func (h *Handler) sendCSV(chatID int64, csvText string) error {
 	)
 
 	file := tgbotapi.FileBytes{
-		Name:  reportName(h.loc),
+		Name:  reportName(),
 		Bytes: data,
 	}
 
@@ -143,11 +141,16 @@ func (h *Handler) handleUpdate(update tgbotapi.Update) {
 		trimText(text, 50),
 	)
 
+	local, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		log.Println(err)
+	}
+
 	data := MessageData{
 		TelegramMessageID: message.MessageID,
 		Username:          username,
 		OriginalText:      text,
-		MessageDate:       message.Time(),
+		MessageDate:       message.Time().In(local),
 	}
 
 	if err := h.db.SaveMessage(h.ctx, data); err != nil {
@@ -175,9 +178,9 @@ func (h *Handler) handleCommand(message *tgbotapi.Message) {
 	case commandWeekly:
 		csvText = ProcessWeeklyReport(h)
 	case commandMorning:
-		csvText = ProcessDailyReport(h)
+		csvText = ProcessDailyReport(h, []string{"-2", "10 hours"})
 	case commandEvening:
-		csvText = ProcessDailyReport(h)
+		csvText = ProcessDailyReport(h, []string{"10 hours", "22 hours"})
 	default:
 		return
 	}
@@ -248,8 +251,8 @@ func trimText(text string, limit int) string {
 	return string(runes[:limit])
 }
 
-func reportName(loc *time.Location) string {
-	now := time.Now().In(loc).AddDate(0, 0, -7)
+func reportName() string {
+	now := time.Now().AddDate(0, 0, -7)
 
 	weekday := int(now.Weekday())
 	if weekday == 0 {
