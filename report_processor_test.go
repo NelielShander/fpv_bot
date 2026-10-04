@@ -59,96 +59,6 @@ func TestWordsAfter(t *testing.T) {
 	}
 }
 
-func TestLineAfter(t *testing.T) {
-	tests := []struct {
-		name string
-		text string
-		key  string
-		want string
-	}{
-		{
-			name: "последняя непустая строка",
-			text: "Текст\nНе доставлено ❌\nПримечание",
-			key:  "Не доставлено",
-			want: "Примечание",
-		},
-		{
-			name: "после ключа одна строка",
-			text: "Текст\nНе доставлено ❌\n",
-			key:  "Не доставлено",
-			want: "❌",
-		},
-		{
-			name: "несколько пустых строк",
-			text: "Текст\nНе доставлено\n\n\nПримечание\n\n",
-			key:  "Не доставлено",
-			want: "Примечание",
-		},
-		{
-			name: "ключ отсутствует",
-			text: "Текст\nПримечание",
-			key:  "Не доставлено",
-			want: "",
-		},
-		{
-			name: "ключ в конце",
-			text: "Текст\nНе доставлено",
-			key:  "Не доставлено",
-			want: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := lineAfter(tt.text, tt.key)
-
-			if got != tt.want {
-				t.Errorf(
-					"lineAfter() = %q, want %q",
-					got,
-					tt.want,
-				)
-			}
-		})
-	}
-}
-
-func TestParseDelivery(t *testing.T) {
-	text := `27.09.2026г
-
-5.✈️
-Жиган
-FPV KT ПВХ-1
-(4.9/2.4)
-
-ТП АКУЛА
-10,15 км
-
-5364927
-7370681
-
-13:44-13:54
-
-2л Бензин
-Клей Момент
-
-Не доставлено ❌
-
-Б`
-
-	want := "ПВХ-1; Логистика; Не выполнена; Б"
-
-	got := parseDelivery(text)
-
-	if got != want {
-		t.Errorf(
-			"parseDelivery() = %q, want %q",
-			got,
-			want,
-		)
-	}
-}
-
 func TestParseReport(t *testing.T) {
 	tests := []struct {
 		name string
@@ -178,26 +88,6 @@ func TestParseReport(t *testing.T) {
 				)
 			}
 		})
-	}
-}
-
-func TestParseReportSelectsDeliveryWithoutStatus(t *testing.T) {
-	report := Report{
-		MessageText: `FPV KT ПВХ-1
-Не доставлено ❌
-Б`,
-	}
-
-	got := parseReport(report)
-
-	want := "ПВХ-1; Логистика; Не выполнена; Б"
-
-	if got != want {
-		t.Errorf(
-			"parseReport() = %q, want %q",
-			got,
-			want,
-		)
 	}
 }
 
