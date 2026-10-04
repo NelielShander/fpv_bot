@@ -65,8 +65,8 @@ func parseDelivery(reportText string, reportType string) string {
 
 	text.WriteString(wordAfter(reportText, "FPV", 2))
 	text.WriteString(fmt.Sprintf("; %s;", reportType))
-	text.WriteString("Не выполнена; ")
-	text.WriteString(lineAfter(reportText, "Не доставлено"))
+	text.WriteString(" Не выполнена; ")
+	text.WriteString(lastLine(reportText, "Не доставлено"))
 
 	return text.String()
 }
@@ -75,14 +75,19 @@ func parseWork(reportText string, reportType string) string {
 	var text strings.Builder
 
 	text.WriteString(wordAfter(reportText, "Изделие", 1)[1:])
-	text.WriteString(fmt.Sprintf("; %s;", reportType))
+	text.WriteString(fmt.Sprintf("; %s; ", reportType))
 	text.WriteString("Не выполнена; ")
-	text.WriteString(wordsAfter(reportText, "Статус:"))
+
+	if strings.Index(reportText, "не поражено") == -1 {
+		text.WriteString(wordsAfter(reportText, "Статус:"))
+	} else {
+		text.WriteString(nextLine(reportText, "не поражено"))
+	}
 
 	return text.String()
 }
 
-func lineAfter(text string, key string) string {
+func lastLine(text string, key string) string {
 	pos := strings.Index(text, key)
 	if pos == -1 {
 		return ""
@@ -128,6 +133,18 @@ func wordAfter(text string, pointer string, skip int) string {
 	for i, word := range words {
 		if word == pointer && i+skip < len(words) {
 			return words[i+skip]
+		}
+	}
+
+	return ""
+}
+
+func nextLine(text, key string) string {
+	lines := strings.Split(text, "\n")
+
+	for i, line := range lines {
+		if strings.Contains(line, key) && i+1 < len(lines) {
+			return lines[i+1]
 		}
 	}
 

@@ -178,7 +178,7 @@ func (h *Handler) handleCommand(message *tgbotapi.Message) {
 	case commandWeekly:
 		csvText = ProcessWeeklyReport(h)
 	case commandMorning:
-		csvText = ProcessDailyReport(h, []string{"-2", "10 hours"})
+		csvText = ProcessDailyReport(h, []string{"-2 hours", "10 hours"})
 	case commandEvening:
 		csvText = ProcessDailyReport(h, []string{"10 hours", "22 hours"})
 	default:
