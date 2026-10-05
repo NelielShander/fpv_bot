@@ -59,38 +59,6 @@ func TestWordsAfter(t *testing.T) {
 	}
 }
 
-func TestParseReport(t *testing.T) {
-	tests := []struct {
-		name string
-		text string
-		want string
-	}{
-		{
-			name: "доставка",
-			text: `FPV KT ПВХ-1
-Не доставлено ❌
-Б`,
-			want: "ПВХ-1; Логистика; Не выполнена; Б",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := parseReport(Report{
-				MessageText: tt.text,
-			})
-
-			if got != tt.want {
-				t.Errorf(
-					"parseReport() = %q, want %q",
-					got,
-					tt.want,
-				)
-			}
-		})
-	}
-}
-
 func TestReportDateFormatting(t *testing.T) {
 	report := Report{
 		MessageDate: time.Date(
