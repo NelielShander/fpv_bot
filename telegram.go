@@ -69,7 +69,7 @@ func SetBotCommands(bot *tgbotapi.BotAPI) error {
 	return err
 }
 
-func (h *Handler) sendCSV(chatID int64, csvText string) error {
+func (h *Handler) sendCSV(chatID int64, csvText, reportName string) error {
 	bot := h.bot
 	// UTF-8 BOM для корректного определения кодировки Excel.
 	data := append(
@@ -78,7 +78,7 @@ func (h *Handler) sendCSV(chatID int64, csvText string) error {
 	)
 
 	file := tgbotapi.FileBytes{
-		Name:  reportName(),
+		Name:  reportName,
 		Bytes: data,
 	}
 
@@ -167,6 +167,7 @@ func (h *Handler) handleUpdate(update tgbotapi.Update) {
 
 func (h *Handler) handleCommand(message *tgbotapi.Message) {
 	var csvText string
+	var reportName string
 
 	switch message.Command() {
 	case "start":
@@ -176,16 +177,16 @@ func (h *Handler) handleCommand(message *tgbotapi.Message) {
 		processHelp(h.bot, message.Chat.ID)
 		return
 	case commandWeekly:
-		csvText = ProcessWeeklyReport(h)
+		csvText, reportName = ProcessWeeklyReport(h)
 	case commandMorning:
-		csvText = ProcessDailyReport(h, []string{"-2 hours", "10 hours"})
+		csvText, reportName = ProcessDailyReport(h, []string{"-2 hours", "10 hours"})
 	case commandEvening:
-		csvText = ProcessDailyReport(h, []string{"10 hours", "22 hours"})
+		csvText, reportName = ProcessDailyReport(h, []string{"10 hours", "22 hours"})
 	default:
 		return
 	}
 
-	if err := h.sendCSV(message.Chat.ID, csvText); err != nil {
+	if err := h.sendCSV(message.Chat.ID, csvText, reportName); err != nil {
 		log.Printf("ошибка отправки ответа: %v", err)
 	}
 }
@@ -251,27 +252,11 @@ func trimText(text string, limit int) string {
 	return string(runes[:limit])
 }
 
-func reportName() string {
-	now := time.Now().AddDate(0, 0, -7)
-
-	weekday := int(now.Weekday())
-	if weekday == 0 {
-		weekday = 7
-	}
-
-	startOfWeek := now.AddDate(0, 0, 1-weekday)
-
-	return fmt.Sprintf(
-		"Отчет по применению от %s.csv",
-		startOfWeek.Format("02.01.2006"),
-	)
-}
-
 func processStart(bot *tgbotapi.BotAPI, chatID int64) {
 	msg := tgbotapi.NewMessage(
 		chatID,
 		"Бот запущен.\n"+
-			"Для вывода команд наберите /start",
+			"Для вывода команд наберите /help",
 	)
 	_, err := bot.Send(msg)
 	if err != nil {
