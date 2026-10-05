@@ -19,9 +19,15 @@ func ProcessWeeklyReport(handler *Handler) string {
 	for i, report := range reports {
 		reportText.WriteString(fmt.Sprintf("%d", i+1))
 		reportText.WriteString("; ")
-		reportText.WriteString(report.MessageDate.Format("02.01.2006"))
+		reportText.WriteString(report.Date())
 		reportText.WriteString("; ")
-		reportText.WriteString(parseReport(report))
+		reportText.WriteString(report.FpvType())
+		reportText.WriteString("; ")
+		reportText.WriteString(report.Type())
+		reportText.WriteString("; ")
+		reportText.WriteString(report.Status())
+		reportText.WriteString("; ")
+		reportText.WriteString(report.Note())
 		reportText.WriteString("\n")
 	}
 
@@ -35,7 +41,7 @@ func ProcessDailyReport(handler *Handler, period []string) string {
 		return ""
 	}
 
-	header := "№; Дата; Позывной; Время; Вид БпЛА; Тип задачи; Координата Х; Координата У; Статус\n"
+	header := "№; Дата; Расчет; Время; Вид БпЛА; Тип задачи; Координата Х; Координата У; Статус\n"
 	var reportText strings.Builder
 
 	for i, report := range reports {
@@ -47,106 +53,4 @@ func ProcessDailyReport(handler *Handler, period []string) string {
 	}
 
 	return header + reportText.String()
-}
-
-func parseReport(report Report) string {
-	text := report.MessageText
-	reportType := report.Type()
-
-	if reportType == "Боевая" {
-		return parseWork(text, reportType)
-	} else {
-		return parseDelivery(text, reportType)
-	}
-}
-
-func parseDelivery(reportText string, reportType string) string {
-	var text strings.Builder
-
-	text.WriteString(wordAfter(reportText, "FPV", 2))
-	text.WriteString(fmt.Sprintf("; %s;", reportType))
-	text.WriteString(" Не выполнена; ")
-	text.WriteString(lastLine(reportText, "Не доставлено"))
-
-	return text.String()
-}
-
-func parseWork(reportText string, reportType string) string {
-	var text strings.Builder
-
-	text.WriteString(wordAfter(reportText, "Изделие", 1)[1:])
-	text.WriteString(fmt.Sprintf("; %s; ", reportType))
-	text.WriteString("Не выполнена; ")
-
-	if strings.Index(reportText, "не поражено") == -1 {
-		text.WriteString(wordsAfter(reportText, "Статус:"))
-	} else {
-		text.WriteString(nextLine(reportText, "не поражено"))
-	}
-
-	return text.String()
-}
-
-func lastLine(text string, key string) string {
-	pos := strings.Index(text, key)
-	if pos == -1 {
-		return ""
-	}
-
-	text = text[pos+len(key):]
-
-	lines := strings.Split(text, "\n")
-
-	for i := len(lines) - 1; i >= 0; i-- {
-		line := strings.TrimSpace(lines[i])
-
-		if line != "" {
-			return line
-		}
-	}
-
-	return ""
-}
-
-func wordsAfter(text string, key string) string {
-	pos := strings.Index(text, key)
-	if pos == -1 {
-		return ""
-	}
-
-	text = text[pos+len(key):]
-
-	if end := strings.IndexAny(text, "\r\n"); end != -1 {
-		text = text[:end]
-	}
-
-	return strings.TrimSpace(text)
-}
-
-func wordAfter(text string, pointer string, skip int) string {
-	if skip < 1 {
-		return ""
-	}
-
-	words := strings.Fields(text)
-
-	for i, word := range words {
-		if word == pointer && i+skip < len(words) {
-			return words[i+skip]
-		}
-	}
-
-	return ""
-}
-
-func nextLine(text, key string) string {
-	lines := strings.Split(text, "\n")
-
-	for i, line := range lines {
-		if strings.Contains(line, key) && i+1 < len(lines) {
-			return lines[i+1]
-		}
-	}
-
-	return ""
 }

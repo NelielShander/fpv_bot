@@ -270,7 +270,8 @@ func reportName() string {
 func processStart(bot *tgbotapi.BotAPI, chatID int64) {
 	msg := tgbotapi.NewMessage(
 		chatID,
-		"Бот запущен.",
+		"Бот запущен.\n"+
+			"Для вывода команд наберите /start",
 	)
 	_, err := bot.Send(msg)
 	if err != nil {

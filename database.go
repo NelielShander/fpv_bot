@@ -2,9 +2,6 @@ package main
 
 import (
 	"context"
-	"strings"
-	"time"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -35,7 +32,7 @@ const (
 				    AND original_text NOT LIKE '%Статус:  поражено%'
 			    	AND original_text NOT ILIKE '%статус: Попадание%' 
 				)
-				OR original_text ILIKE '%Не доставлено%'
+				OR original_text ILIKE '%Не доставлено ❌%'
 			)
 		ORDER BY message_date;
 	`
@@ -54,12 +51,6 @@ const (
 
 type Database struct {
 	pool *pgxpool.Pool
-}
-
-type Report struct {
-	Username    string
-	MessageText string
-	MessageDate time.Time
 }
 
 func NewDatabase(ctx context.Context, url string) (*Database, error) {
@@ -95,14 +86,6 @@ func (db *Database) SaveMessage(ctx context.Context, data MessageData) error {
 	)
 
 	return err
-}
-
-func (report *Report) Type() string {
-	if strings.Contains(report.MessageText, "Статус:") {
-		return "Боевая"
-	} else {
-		return "Логистика"
-	}
 }
 
 func GetLastWeekReports(ctx context.Context, db *Database) ([]Report, error) {
