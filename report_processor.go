@@ -8,7 +8,8 @@ import (
 )
 
 func ProcessWeeklyReport(handler *Handler) (string, string) {
-	startOfWeek := time.Now().Truncate(24 * time.Hour)
+	now := time.Now().AddDate(0, 0, 1)
+	startOfWeek := now.Truncate(24 * time.Hour)
 	name := fmt.Sprintf("Недельный отчет %s.csv", startOfWeek.Format("02.01.2006"))
 
 	reports, err := GetLastWeekReports(handler.ctx, handler.db)

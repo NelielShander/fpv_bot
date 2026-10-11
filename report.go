@@ -56,9 +56,8 @@ func (report *Report) Note() string {
 			return nextLine(report.MessageText, "не поражено")
 		}
 	} else {
-		lastLine(report.MessageText, "Не доставлено")
+		return linesAfter(report.MessageText, "Не доставлено ❌")
 	}
-	return ""
 }
 
 func (report *Report) Team() string {
@@ -93,21 +92,21 @@ func (report *Report) Coordinates() []string {
 	return match
 }
 
-func lastLine(text string, key string) string {
-	pos := strings.Index(text, key)
-	if pos == -1 {
-		return ""
-	}
-
-	text = text[pos+len(key):]
-
+func linesAfter(text, key string) string {
 	lines := strings.Split(text, "\n")
 
-	for i := len(lines) - 1; i >= 0; i-- {
-		line := strings.TrimSpace(lines[i])
+	for i, line := range lines {
+		if strings.Contains(line, key) {
+			var result []string
 
-		if line != "" {
-			return line
+			for _, s := range lines[i+1:] {
+				s = strings.TrimSpace(s)
+				if s != "" && !strings.Contains(s, "Борт учтённый") {
+					result = append(result, s)
+				}
+			}
+
+			return strings.Join(result, " ")
 		}
 	}
 

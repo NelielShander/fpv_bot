@@ -23,8 +23,8 @@ const (
 			original_text,
 			message_date
 		FROM messages
-		WHERE message_date >= date_trunc('week', CURRENT_DATE) - INTERVAL '7 days'
-		  AND message_date < date_trunc('week', CURRENT_DATE)
+		WHERE message_date >= date_trunc('week', CURRENT_DATE + INTERVAL '1 day') - INTERVAL '7 days'
+		  AND message_date < date_trunc('week', CURRENT_DATE + INTERVAL '1 day')
 		ORDER BY message_date;
 	`
 
