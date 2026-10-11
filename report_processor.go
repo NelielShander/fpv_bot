@@ -55,13 +55,27 @@ func ProcessDailyReport(handler *Handler, period []string) (string, string) {
 		return "", name
 	}
 
-	header := "№; Дата; Расчет; Время; Вид БпЛА; Тип задачи; Координата Х; Координата У; Статус\n"
+	header := "№; Дата; Расчет; Время вылета; Вид БпЛА; Тип задачи; Координата Х; Координата У; Статус\n"
 	var reportText strings.Builder
 
 	for i, report := range reports {
 		reportText.WriteString(fmt.Sprintf("%d", i+1))
 		reportText.WriteString("; ")
-		reportText.WriteString(report.MessageDate.Format("02.01.2006"))
+		reportText.WriteString(report.Date())
+		reportText.WriteString("; ")
+		reportText.WriteString(report.Team())
+		reportText.WriteString("; ")
+		reportText.WriteString(report.WorkTime())
+		reportText.WriteString("; ")
+		reportText.WriteString(report.FpvType())
+		reportText.WriteString("; ")
+		reportText.WriteString(report.Type())
+		reportText.WriteString("; ")
+		reportText.WriteString(report.Coordinates()[1])
+		reportText.WriteString("; ")
+		reportText.WriteString(report.Coordinates()[2])
+		reportText.WriteString("; ")
+		reportText.WriteString(report.Status())
 		reportText.WriteString("\n")
 
 	}

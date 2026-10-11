@@ -1,6 +1,7 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 	"time"
 )
@@ -16,7 +17,7 @@ func (report *Report) Type() string {
 	if strings.Contains(report.MessageText, "Статус:") {
 		return "Боевая"
 	} else {
-		return "Логистика"
+		return "Логистика (Сброс)"
 	}
 }
 
@@ -60,6 +61,38 @@ func (report *Report) Note() string {
 	return ""
 }
 
+func (report *Report) Team() string {
+	if report.Type() == "Боевая" {
+		return wordAfter(report.MessageText, "Расчёт:", 0)
+	} else {
+		return "Беркут"
+	}
+}
+
+func (report *Report) WorkTime() string {
+	text := report.MessageText
+	re := regexp.MustCompile(`(?m)^\d{7}\r?\n\d{7}\r?\n\r?\n([^\r\n]+)`)
+
+	match := re.FindStringSubmatch(text)
+	if len(match) > 1 {
+
+		if len(match[1]) >= 5 {
+			return match[1][:5]
+		}
+
+		return match[1]
+	} else {
+		return wordsAfter(report.MessageText, "Время вылета :")
+	}
+}
+
+func (report *Report) Coordinates() []string {
+	re := regexp.MustCompile(`(?m)^(\d{7})\r?\n(\d{7})\r?\n\r?\n`)
+	match := re.FindStringSubmatch(report.MessageText)
+
+	return match
+}
+
 func lastLine(text string, key string) string {
 	pos := strings.Index(text, key)
 	if pos == -1 {
@@ -97,7 +130,7 @@ func wordsAfter(text string, key string) string {
 }
 
 func wordAfter(text string, pointer string, skip int) string {
-	if skip < 1 {
+	if skip < 0 {
 		return ""
 	}
 
