@@ -69,7 +69,7 @@ func (report *Report) Team() string {
 	}
 }
 
-// WorkTime время вылета
+// WorkTime время начала вылета
 func (report *Report) WorkTime() string {
 	text := report.MessageText
 	re := regexp.MustCompile(`(?m)^\d{7}\r?\n\d{7}\r?\n\r?\n([^\r\n]+)`)
