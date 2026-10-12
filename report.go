@@ -60,6 +60,7 @@ func (report *Report) Note() string {
 	}
 }
 
+// Team расчет
 func (report *Report) Team() string {
 	if report.Type() == "Боевая" {
 		return wordAfter(report.MessageText, "Расчёт:", 0)
@@ -68,6 +69,7 @@ func (report *Report) Team() string {
 	}
 }
 
+// WorkTime время вылета
 func (report *Report) WorkTime() string {
 	text := report.MessageText
 	re := regexp.MustCompile(`(?m)^\d{7}\r?\n\d{7}\r?\n\r?\n([^\r\n]+)`)
@@ -85,6 +87,7 @@ func (report *Report) WorkTime() string {
 	}
 }
 
+// Coordinates координаты
 func (report *Report) Coordinates() []string {
 	re := regexp.MustCompile(`(?m)^(\d{7})\r?\n(\d{7})\r?\n\r?\n`)
 	match := re.FindStringSubmatch(report.MessageText)
