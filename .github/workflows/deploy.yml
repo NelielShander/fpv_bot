@@ -1,0 +1,68 @@
+name: Deploy FPV Bot
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-fpv-bot
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build Linux binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+            go build -trimpath -ldflags="-s -w" \
+            -o fpv_bot .
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VDS_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.VDS_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Upload binary
+        env:
+          VDS_HOST: ${{ secrets.VDS_HOST }}
+          VDS_USER: ${{ secrets.VDS_USER }}
+          VDS_PORT: ${{ secrets.VDS_PORT }}
+        run: |
+          PORT="${VDS_PORT:-22}"
+          scp -P "$PORT" fpv_bot \
+            "${VDS_USER}@${VDS_HOST}:/opt/fpv_bot/releases/fpv_bot.new"
+
+      - name: Activate deployment
+        env:
+          VDS_HOST: ${{ secrets.VDS_HOST }}
+          VDS_USER: ${{ secrets.VDS_USER }}
+          VDS_PORT: ${{ secrets.VDS_PORT }}
+        run: |
+          PORT="${VDS_PORT:-22}"
+          ssh -p "$PORT" "${VDS_USER}@${VDS_HOST}" \
+            'mv /opt/fpv_bot/releases/fpv_bot.new /opt/fpv_bot/bin/fpv_bot &&
+             sudo /usr/bin/systemctl restart fpv_bot.service &&
+             sudo /usr/bin/systemctl is-active fpv_bot.service'
