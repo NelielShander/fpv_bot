@@ -29,7 +29,10 @@ func (report *Report) Date() string {
 // FpvType Тип БпЛА
 func (report *Report) FpvType() string {
 	if report.Type() == "Боевая" {
-		return wordAfter(report.MessageText, "Изделие", 1)[1:]
+		value := wordsAfter(report.MessageText, "Изделие")
+		value = strings.TrimSpace(value)
+		value = strings.TrimLeft(value, ":： ")
+		return value
 	}
 
 	return wordAfter(report.MessageText, "FPV", 2)

@@ -13,8 +13,7 @@ const (
 			original_text,
 			message_date
 		)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (telegram_message_id) DO NOTHING;
+		VALUES ($1, $2, $3, $4);
 	`
 
 	getLastWeekReportsQuery = `
