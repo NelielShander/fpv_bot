@@ -29,7 +29,14 @@ func (report *Report) Date() string {
 // FpvType Тип БпЛА
 func (report *Report) FpvType() string {
 	if report.Type() == "Боевая" {
-		return wordAfter(report.MessageText, "Изделие", 1)[1:]
+		re := regexp.MustCompile(`(?m)^Изделие\s*:\s*(\S+)`)
+		match := re.FindStringSubmatch(report.MessageText)
+
+		if len(match) < 2 {
+			return ""
+		}
+
+		return match[1]
 	}
 
 	return wordAfter(report.MessageText, "FPV", 2)
