@@ -29,10 +29,7 @@ func (report *Report) Date() string {
 // FpvType Тип БпЛА
 func (report *Report) FpvType() string {
 	if report.Type() == "Боевая" {
-		value := wordsAfter(report.MessageText, "Изделие")
-		value = strings.TrimSpace(value)
-		value = strings.TrimLeft(value, ":： ")
-		return value
+		return wordAfter(report.MessageText, "Изделие", 1)[1:]
 	}
 
 	return wordAfter(report.MessageText, "FPV", 2)
@@ -94,6 +91,10 @@ func (report *Report) WorkTime() string {
 func (report *Report) Coordinates() []string {
 	re := regexp.MustCompile(`(?m)^(\d{7})\r?\n(\d{7})\r?\n\r?\n`)
 	match := re.FindStringSubmatch(report.MessageText)
+
+	if len(match) < 3 {
+		return make([]string, 3)
+	}
 
 	return match
 }
