@@ -87,8 +87,38 @@ func (report *Report) WorkTime() string {
 	}
 }
 
+func (report *Report) CoordinateX() string {
+	if report.Type() == "Боевая" {
+		re := regexp.MustCompile(`(?m)^Х=(.*)$`)
+		match := re.FindStringSubmatch(report.MessageText)
+
+		if len(match) < 2 {
+			return ""
+		}
+
+		return match[1]
+	}
+
+	return coordinates(report)[1]
+}
+
+func (report *Report) CoordinateY() string {
+	if report.Type() == "Боевая" {
+		re := regexp.MustCompile(`(?m)^У=(.*)$`)
+		match := re.FindStringSubmatch(report.MessageText)
+
+		if len(match) < 2 {
+			return ""
+		}
+
+		return match[1]
+	}
+
+	return coordinates(report)[2]
+}
+
 // Coordinates координаты
-func (report *Report) Coordinates() []string {
+func coordinates(report *Report) []string {
 	re := regexp.MustCompile(`(?m)^(\d{7})\r?\n(\d{7})\r?\n\r?\n`)
 	match := re.FindStringSubmatch(report.MessageText)
 
