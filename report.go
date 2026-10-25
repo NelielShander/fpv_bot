@@ -58,15 +58,19 @@ func (report *Report) Status() string {
 
 // Note примечание
 func (report *Report) Note() string {
-	if report.Type() == "Боевая" {
-		if strings.Index(report.MessageText, "не поражено") == -1 {
-			return wordsAfter(report.MessageText, "Статус:")
+	if report.Status() == "Не выполнена" {
+		if report.Type() == "Боевая" {
+			if strings.Index(report.MessageText, "не поражено") == -1 {
+				return wordsAfter(report.MessageText, "Статус:")
+			} else {
+				return nextLine(report.MessageText, "не поражено")
+			}
 		} else {
-			return nextLine(report.MessageText, "не поражено")
+			return linesAfter(report.MessageText, "Не доставлено ❌")
 		}
-	} else {
-		return linesAfter(report.MessageText, "Не доставлено ❌")
 	}
+
+	return ""
 }
 
 // Team расчет
