@@ -18,7 +18,7 @@ func ProcessWeeklyReport(handler *Handler) (string, string) {
 		return "", name
 	}
 
-	header := "№; Дата; Вид БпЛА; Тип задачи; Статус; Примечание\n"
+	header := "№; Дата; Вид БпЛА; Тип задачи; Статус; Примечание; id\n"
 	var reportText strings.Builder
 
 	for i, report := range reports {
