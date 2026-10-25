@@ -48,6 +48,7 @@ func (report *Report) Status() string {
 	if strings.Contains(report.MessageText, "Доставлено ✅") ||
 		strings.Contains(report.MessageText, "Cтатус: поражено") ||
 		strings.Contains(report.MessageText, "Статус:  поражено") ||
+		strings.Contains(report.MessageText, "Статус: Поражено") ||
 		strings.Contains(report.MessageText, "Cтатус: Попадание") {
 		return "Выполнена"
 	}

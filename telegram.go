@@ -232,6 +232,7 @@ func messageUsername(message *tgbotapi.Message) string {
 func normalizeMessageText(text string) string {
 	text = strings.ReplaceAll(text, "ПВХ - ", "ПВХ-")
 	text = strings.ReplaceAll(text, "ПВХ1", "ПВХ-1")
+	text = strings.ReplaceAll(text, "Борт учтенный", "")
 
 	return text
 }
