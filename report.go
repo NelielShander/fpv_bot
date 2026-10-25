@@ -10,6 +10,7 @@ type Report struct {
 	Username    string
 	MessageText string
 	MessageDate time.Time
+	ID          int64
 }
 
 // Type Тип задачи

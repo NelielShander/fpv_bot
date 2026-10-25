@@ -33,6 +33,8 @@ func ProcessWeeklyReport(handler *Handler) (string, string) {
 		reportText.WriteString(report.Status())
 		reportText.WriteString("; ")
 		reportText.WriteString(report.Note())
+		reportText.WriteString("; ")
+		reportText.WriteString(fmt.Sprintf("%d", report.ID))
 		reportText.WriteString("\n")
 	}
 

@@ -20,7 +20,8 @@ const (
 		SELECT
 			username,
 			original_text,
-			message_date
+			message_date,
+			id
 		FROM messages
 		WHERE message_date >= date_trunc('week', CURRENT_DATE + INTERVAL '1 day') - INTERVAL '7 days'
 		  AND message_date < date_trunc('week', CURRENT_DATE + INTERVAL '1 day')
@@ -102,6 +103,7 @@ func getReports(ctx context.Context, db *Database, query string, args ...any) ([
 			&report.Username,
 			&report.MessageText,
 			&report.MessageDate,
+			&report.ID,
 		); err != nil {
 			return nil, err
 		}
